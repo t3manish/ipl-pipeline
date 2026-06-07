@@ -1,17 +1,62 @@
 version: "3.8"
 
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.0
+  env_file: .env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    PYTHONPATH: /opt/airflow/project
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - .:/opt/airflow/project
+  depends_on:
+    - postgres
+
 services:
-  spark-jupyter:
-    image: jupyter/pyspark-notebook:latest
-    container_name: ipl-spark-jupyter
-    ports:
-      - "8888:8888"       # Jupyter
-      - "4040:4040"       # Spark UI (useful to see jobs)
-    env_file:
-      - .env
+  postgres:
+    image: postgres:13
     environment:
-      - JUPYTER_ENABLE_LAB=yes
-      - JUPYTER_TOKEN=manish123      # your login token
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     volumes:
-      - .:/home/jovyan/work          # mounts your whole project
+      - postgres_data:/var/lib/postgresql/data
+
+  airflow-init:
+    <<: *airflow-common
+    command: >
+      bash -c "
+        pip install snowflake-connector-python boto3 pandas pyspark -q &&
+        airflow db init &&
+        airflow users create --username admin --password admin
+          --firstname Admin --lastname User
+          --role Admin --email admin@example.com
+      "
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    ports:
+      - "8080:8080"
+    command: webserver
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    ports:
+      - "8889:8888"
+    env_file: .env
+    environment:
+      JUPYTER_TOKEN: manish123
+    volumes:
+      - .:/home/jovyan/work
     working_dir: /home/jovyan/work
+
+volumes:
+  postgres_data:

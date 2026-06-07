@@ -1,0 +1,27 @@
+version: 2
+
+sources:
+  - name: ipl_raw
+    database: IPL_DB
+    schema: RAW
+    tables:
+      - name: team_wins
+      - name: season_summary
+      - name: toss_analysis
+
+models:
+  - name: stg_team_wins
+    description: "Cleaned team wins with win percentage"
+    columns:
+      - name: team_name
+        tests: [not_null, unique]
+      - name: total_wins
+        tests: [not_null]
+
+  - name: mart_team_performance
+    description: "Final mart with ranking and tiers"
+    columns:
+      - name: team_name
+        tests: [not_null, unique]
+      - name: performance_rank
+        tests: [not_null]
