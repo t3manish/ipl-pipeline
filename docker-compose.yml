@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  spark-jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: ipl-spark-jupyter
+    ports:
+      - "8888:8888"       # Jupyter
+      - "4040:4040"       # Spark UI (useful to see jobs)
+    env_file:
+      - .env
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=manish123      # your login token
+    volumes:
+      - .:/home/jovyan/work          # mounts your whole project
+    working_dir: /home/jovyan/work
